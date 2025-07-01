@@ -1,5 +1,7 @@
-from flask import Blueprint
-
+from flask import Blueprint, request, jsonify
+import re
+from models.db_connection import DBConnection
+import json
 # This route is intended to add a new user to the database.
 # It expects the following parameters (with validation):
 # - UserName (str, required validation - no digits, no special characters)
@@ -21,8 +23,70 @@ add_user_bp = Blueprint('add_user', __name__)
 @add_user_bp.route('/api/add-user', methods=['POST'])
 def add_user():
     try:
-        # Put your code here
-        return {"message": "all good", "status_code": 111}, 200
+        #data = request.get_json()
+
+        data = request.get_json(silent=True)
+        if data is None and request.data:
+            try:
+                event = request.get_json(force=True)
+                if isinstance(event, dict) and "body" in event:
+                    data = json.loads(event["body"])
+            except Exception:
+                data = {}
+        print("DEBUG DATA:", data)
+        # Required fields
+        required_fields = ['UserName', 'CreatedDate', 'FirstName', 'LastName', 'PhoneNumber', 'ID', 'Email']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"message": f"Missing or empty required field: {field}"}), 400
+
+        # Validate UserName, FirstName, LastName
+        name_pattern = re.compile(r"^[A-Za-z]+$")
+        if not name_pattern.match(data['UserName']):
+            return jsonify({"message": "UserName must contain only letters."}), 400
+        if not name_pattern.match(data['FirstName']):
+            return jsonify({"message": "FirstName must contain only letters."}), 400
+        if not name_pattern.match(data['LastName']):
+            return jsonify({"message": "LastName must contain only letters."}), 400
+
+        # Validate CreatedDate 
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        if not date_pattern.match(data['CreatedDate']):
+            return jsonify({"message": "CreatedDate must be in ISO format YYYY-MM-DD."}), 400
+
+        # Validate PhoneNumber 
+        if not re.match(r"^\d{10}$", data['PhoneNumber']):
+            return jsonify({"message": "PhoneNumber must be a valid 10-digit number."}), 400
+
+        # Validate ID 
+        if not re.match(r"^\d{9}$", data['ID']):
+            return jsonify({"message": "ID must be a valid 9-digit identifier."}), 400
+        
+        # Validate Email 
+        email_pattern = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
+        if not email_pattern.match(data['Email']):
+            return jsonify({"message": "Email must be a valid email address."}), 400
+
+        # Optional field
+        home_address = data.get('HomeAddress', '')
+
+        # Insert into database using DBConnection
+        db = DBConnection()
+        db.execute("""
+            INSERT INTO Users (UserName, CreatedDate, FirstName, LastName, PhoneNumber, HomeAddress, ID, Email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data['UserName'],
+            data['CreatedDate'],
+            data['FirstName'],
+            data['LastName'],
+            data['PhoneNumber'],
+            home_address,
+            data['ID'],
+            data['Email']
+        ), commit=True)
+
+        return jsonify({"message": "User added successfully."}), 200
 
     except Exception as e:
-        return {"message": f"An error occurred: {str(e)}"}, 500
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500

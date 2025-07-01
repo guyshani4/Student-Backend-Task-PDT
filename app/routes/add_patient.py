@@ -1,5 +1,7 @@
-from flask import Blueprint
-
+from flask import Blueprint, request, jsonify
+import re
+from models.db_connection import DBConnection
+import json
 # This route is intended to add a new patient to the database.
 # It expects the following parameters (with validation):
 # - FirstName (str, required validation - no digits, no special characters)
@@ -20,9 +22,75 @@ add_patient_bp = Blueprint('add_patient', __name__)
 @add_patient_bp.route('/api/add-patient', methods=['POST'])
 def add_patient():
     try:
-        # Put your code here
-        return {"message": "all good", "status_code": 111}, 200
+        #data = request.get_json()
 
+        # Try to get data as usual
+        data = request.get_json(silent=True)
+        # If data is None, try to parse Lambda event format
+        if data is None and request.data:
+            try:
+                event = request.get_json(force=True)
+                if isinstance(event, dict) and "body" in event:
+                    data = json.loads(event["body"])
+            except Exception:
+                data = {}
+
+
+        # Required fields
+        required_fields = ['FirstName', 'LastName', 'ID', 'DateOfBirth', 'Gender', 'InterfaceLanguage']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"message": f"Missing or empty required field: {field}"}), 400
+
+        # Validate FirstName and LastName 
+        name_pattern = re.compile(r"^[A-Za-z]+$")
+        if not name_pattern.match(data['FirstName']):
+            return jsonify({"message": "FirstName must contain only letters."}), 400
+        if not name_pattern.match(data['LastName']):
+            return jsonify({"message": "LastName must contain only letters."}), 400
+
+        # Validate ID 
+        try:
+            patient_id = int(data['ID'])
+            if len(str(patient_id)) != 9:
+                return jsonify({"message": "ID must be a 9-digit integer."}), 400
+        except Exception:
+            return jsonify({"message": "ID must be a 9-digit integer."}), 400
+
+         # Validate DateOfBirth 
+        dob_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        if not dob_pattern.match(data['DateOfBirth']):
+            return jsonify({"message": "DateOfBirth must be in ISO format YYYY-MM-DD."}), 400
+        
+        # Validate Gender
+        if data['Gender'] not in ['male', 'female', 'other']:
+            return jsonify({"message": "Gender must be one of ['male', 'female', 'other']."}), 400
+
+        # Validate InterfaceLanguage 
+        if not re.match(r"^[A-Za-z]{1,2}$", data['InterfaceLanguage']):
+            return jsonify({"message": "InterfaceLanguage must be 1 or 2 letters."}), 400
+
+        # Optional fields
+        medical_history = data.get('MedicalHistory', '')
+        home_address = data.get('HomeAddress', '')
+
+        # Insert into database using DBConnection
+        db = DBConnection()
+        db.execute("""
+            INSERT INTO Patients (FirstName, LastName, ID, DateOfBirth, Gender, MedicalHistory, HomeAddress, InterfaceLanguage)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data['FirstName'],
+            data['LastName'],
+            patient_id,
+            data['DateOfBirth'],
+            data['Gender'],
+            medical_history,
+            home_address,
+            data['InterfaceLanguage']
+        ), commit=True)
+        
+        return jsonify({"message": "User added successfully."}), 200
 
     except Exception as e:
-        return {"message": f"An error occurred: {str(e)}"}, 500
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500

@@ -1,4 +1,7 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
+import re
+import json
+from models.db_connection import DBConnection
 
 # This route is intended to add a new session to the database.
 # It expects the following parameters (with validation):
@@ -17,8 +20,59 @@ setup_session_bp = Blueprint('setup_session', __name__)
 @setup_session_bp.route('/api/setup-session', methods=['POST'])
 def setup_session():
     try:
-        # Put your code here
-        return {"message": "all good", "status_code": 111}, 200
+        # Parse Lambda event or standard Flask request
+        data = request.get_json(silent=True)
+        if data is None and request.data:
+            try:
+                event = request.get_json(force=True)
+                if isinstance(event, dict) and "body" in event:
+                    data = json.loads(event["body"])
+            except Exception:
+                data = {}
+
+        required_fields = ['PatientID', 'StartDate', 'EndDate', 'TherapistID']
+        for field in required_fields:
+            if field not in data or data[field] is None or data[field] == '':
+                return jsonify({"message": f"Missing or empty required field: {field}"}), 400
+
+        # Extract IDs
+        patient_id = data['PatientID']
+        therapist_id = data['TherapistID']
+
+        # Validate StartDate and EndDate (ISO format)
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        if not date_pattern.match(data['StartDate']):
+            return jsonify({"message": "StartDate must be in ISO format YYYY-MM-DD."}), 400
+        if not date_pattern.match(data['EndDate']):
+            return jsonify({"message": "EndDate must be in ISO format YYYY-MM-DD."}), 400
+
+        # Check PatientID exists
+        db = DBConnection()
+        patient = db.execute("SELECT 1 FROM Patients WHERE ID = ?", (patient_id,), fetchone=True)
+        if not patient:
+            return jsonify({"message": "PatientID does not exist."}), 400
+
+        # Check TherapistID exists
+        therapist = db.execute("SELECT 1 FROM Users WHERE ID = ?", (therapist_id,), fetchone=True)
+        if not therapist:
+            return jsonify({"message": "TherapistID does not exist."}), 400
+
+        # Optional field
+        summary = data.get('Summary', '')
+
+        # Insert into Sessions table
+        db.execute("""
+            INSERT INTO Sessions (PatientID, StartDate, EndDate, Summary, TherapistID)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            patient_id,
+            data['StartDate'],
+            data['EndDate'],
+            summary,
+            therapist_id
+        ), commit=True)
+
+        return jsonify({"message": "Session added successfully."}), 200
 
     except Exception as e:
-        return {"message": f"An error occurred: {str(e)}"}, 500
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500

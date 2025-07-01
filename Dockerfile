@@ -13,7 +13,7 @@ COPY ./app /var/task/app
 COPY ./models /var/task/models
 COPY ./Utils /var/task/Utils
 COPY lambda_handler.py .
-COPY playground/init_db.py .
+COPY init_db.py .
 
 # Make sure the database directory exists
 RUN mkdir -p /var/task/database
