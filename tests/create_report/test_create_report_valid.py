@@ -20,6 +20,8 @@ def test_create_report_valid():
     print(result)
     assert statusCode == 200
 
-    # Optionally, check that the body is a JSON list (summary table)
-    body = json.loads(result.get("body", "[]"))
-    assert isinstance(body, list)
+    # Check that the body is a dict with a 'data' key containing a list
+    body = json.loads(result.get("body", "{}"))
+    assert isinstance(body, dict)
+    assert "data" in body
+    assert isinstance(body["data"], list)

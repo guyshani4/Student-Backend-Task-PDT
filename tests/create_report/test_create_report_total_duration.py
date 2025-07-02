@@ -4,7 +4,7 @@ import os
 import json
 from datetime import datetime
 
-# Add the root directory of your project to the Python path
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from models.db_connection import DBConnection
@@ -12,7 +12,7 @@ from models.db_connection import DBConnection
 BASE_URL = "http://localhost:9000/2015-03-31/functions/function/invocations"
 
 def test_create_report_total_duration():
-    # Setup: Add patient and therapist
+    # Add patient and therapist
     db = DBConnection()
     patient_id = 555555555
     therapist_id = 999999999
@@ -56,11 +56,12 @@ def test_create_report_total_duration():
     print(result)
     assert statusCode == 200
 
-    body = json.loads(result.get("body", "[]"))
-    assert isinstance(body, list)
+    body = json.loads(result.get("body", "{}"))
+    assert isinstance(body, dict)
+    assert "data" in body
+    assert isinstance(body["data"], list)
 
-    # Find the report for our patient
-    patient_report = next((row for row in body if row["PatientID"] == patient_id), None)
+    patient_report = next((row for row in body["data"] if row["PatientID"] == patient_id), None)
     assert patient_report is not None
     assert patient_report["total_duration"] == total_duration
     assert patient_report["number_of_session"] == 3

@@ -3,7 +3,6 @@ import sys
 import os
 import json
 
-# the root directory of your project to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 BASE_URL = "http://localhost:9000/2015-03-31/functions/function/invocations"
@@ -27,7 +26,4 @@ def test_add_patient_missing_first_name():
     res = requests.post(BASE_URL, json=lambda_event)
     result = res.json()
     statusCode = result.get("statusCode", 0)
-    print(result)  # Optional: helps with debugging
     assert statusCode == 400
-
-    #SEC15A5Y2TUWP6
