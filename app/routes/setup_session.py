@@ -3,6 +3,14 @@ import logging
 import json
 from Utils.setup_session_utils import validate_and_add_session
 
+# Custom Status Codes:
+# 30000 - Success: Session added
+# 30001 - Missing or empty required field
+# 30002 - Invalid StartDate/EndDate
+# 30003 - PatientID does not exist
+# 30004 - TherapistID does not exist
+# 30999 - Internal server error
+
 # This route is intended to add a new session to the database.
 # It expects the following parameters (with validation):
 # - PatientID (int, required validation - must be a valid integer and exist in the Patients table)
@@ -31,14 +39,14 @@ def setup_session():
             except Exception:
                 data = {}
 
-        success, message = validate_and_add_session(data)
+        success, message, code = validate_and_add_session(data)
         if not success:
             logger.error("setup_session failed: %s", message)
-            return jsonify({"message": message}), 400
+            return jsonify({"message": message, "customCode": code}), 400
         logger.info(message)
-        return jsonify({"message": "Session added successfully."}), 200
+        return jsonify({"message": "Session added successfully.", "customCode": code}), 200
 
     except Exception as e:
         patient_id = data.get('PatientID', 'unknown') if 'data' in locals() and isinstance(data, dict) else 'unknown'
         logger.error("Error in setup_session for PatientID %s: %s", patient_id, str(e))
-        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"message": f"An error occurred: {str(e)}", "customCode": 30999}), 500

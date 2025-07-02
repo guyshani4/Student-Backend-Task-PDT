@@ -16,6 +16,15 @@ from Utils.add_patient_utils import validate_and_add_patient
 # The route must return an appropriate message for each specific failure or success.
 # If validation fails, return 400 status. If successful, return 200 status.
 
+# Custom Status Codes:
+# 10000 - Success: Patient added
+# 10001 - Missing or empty required field
+# 10002 - Invalid FirstName/LastName
+# 10003 - Invalid ID
+# 10004 - Invalid DateOfBirth
+# 10005 - Invalid Gender
+# 10006 - Invalid InterfaceLanguage
+# 10999 - Internal server error
 
 add_patient_bp = Blueprint('add_patient', __name__)
 
@@ -34,14 +43,14 @@ def add_patient():
             except Exception:
                 data = {}
 
-        success, message = validate_and_add_patient(data)
+        success, message, code = validate_and_add_patient(data)
         if not success:
             logger.error("add_patient failed: %s", message)
-            return jsonify({"message": message}), 400
+            return jsonify({"message": message, "customCode": code}), 400
         logger.info(message)
-        return jsonify({"message": "User added successfully."}), 200
+        return jsonify({"message": "User added successfully.", "customCode": code}), 200
 
     except Exception as e:
         patient_id = data.get('ID', 'unknown') if 'data' in locals() and isinstance(data, dict) else 'unknown'
         logger.error("Error in add_patient %s: %s", patient_id, str(e))
-        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"message": f"An error occurred: {str(e)}", "customCode": 10999}), 500

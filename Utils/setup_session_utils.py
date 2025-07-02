@@ -4,12 +4,12 @@ from models.db_connection import DBConnection
 def validate_and_add_session(data):
     """
     Validates input data and adds a session to the database if valid.
-    Returns a tuple: (success: bool, message: str)
+    Returns a tuple: (success: bool, message: str, code: int)
     """
     required_fields = ['PatientID', 'StartDate', 'EndDate', 'TherapistID']
     for field in required_fields:
         if field not in data or data[field] is None or data[field] == '':
-            return False, f"Missing or empty required field: {field}"
+            return False, f"Missing or empty required field: {field}", 30001
 
     patient_id = data['PatientID']
     therapist_id = data['TherapistID']
@@ -17,20 +17,20 @@ def validate_and_add_session(data):
     # Validate StartDate and EndDate (ISO format)
     date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
     if not date_pattern.match(data['StartDate']):
-        return False, "StartDate must be in ISO format YYYY-MM-DD."
+        return False, "StartDate must be in ISO format YYYY-MM-DD.", 30002
     if not date_pattern.match(data['EndDate']):
-        return False, "EndDate must be in ISO format YYYY-MM-DD."
+        return False, "EndDate must be in ISO format YYYY-MM-DD.", 30002
 
     # Check PatientID exists
     db = DBConnection()
     patient = db.execute("SELECT 1 FROM Patients WHERE ID = ?", (patient_id,), fetchone=True)
     if not patient:
-        return False, "PatientID does not exist."
+        return False, "PatientID does not exist.", 30003
 
     # Check TherapistID exists
     therapist = db.execute("SELECT 1 FROM Users WHERE ID = ?", (therapist_id,), fetchone=True)
     if not therapist:
-        return False, "TherapistID does not exist."
+        return False, "TherapistID does not exist.", 30004
 
     # Optional field
     summary = data.get('Summary', '')
@@ -50,4 +50,4 @@ def validate_and_add_session(data):
         ),
         commit=True
     )
-    return True, f"Session added successfully: PatientID={patient_id}, TherapistID={therapist_id}, StartDate={data['StartDate']}, EndDate={data['EndDate']}"
+    return True, f"Session added successfully: PatientID={patient_id}, TherapistID={therapist_id}, StartDate={data['StartDate']}, EndDate={data['EndDate']}", 30000

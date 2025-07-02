@@ -16,7 +16,15 @@ from Utils.add_user_utils import validate_and_add_user
 # The route must return an appropriate message for each specific failure or success.
 # If validation fails, return 400 status. If successful, return 200 status.
 
-
+# Custom Status Codes:
+# 20000 - Success: User added
+# 20001 - Missing or empty required field
+# 20002 - Invalid UserName/FirstName/LastName
+# 20003 - Invalid CreatedDate
+# 20004 - Invalid PhoneNumber
+# 20005 - Invalid ID
+# 20006 - Invalid Email
+# 20999 - Internal server error
 
 add_user_bp = Blueprint('add_user', __name__)
 logger = logging.getLogger(__name__)
@@ -34,14 +42,14 @@ def add_user():
             except Exception:
                 data = {}
         print("DEBUG DATA:", data)
-        success, message = validate_and_add_user(data)
+        success, message, code = validate_and_add_user(data)
         if not success:
             logger.error("add_user failed: %s", message)
-            return jsonify({"message": message}), 400
+            return jsonify({"message": message, "customCode": code}), 400
         logger.info(message)
-        return jsonify({"message": "User added successfully."}), 200
+        return jsonify({"message": "User added successfully.", "customCode": code}), 200
 
     except Exception as e:
         user_id = data.get('ID', 'unknown') if 'data' in locals() and isinstance(data, dict) else 'unknown'
         logger.error("Error in add_user %s: %s", user_id, str(e))
-        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"message": f"An error occurred: {str(e)}", "customCode": 20999}), 500

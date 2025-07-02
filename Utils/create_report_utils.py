@@ -4,13 +4,12 @@ from models.db_connection import DBConnection
 def generate_report():
     """
     Fetches all sessions and returns a summary table grouped by PatientID.
-    Returns a list of dicts with PatientID, number_of_session, and total_duration.
-    Raises exceptions on error.
+    Returns a tuple: (success: bool, result: list, code: int)
     """
     db = DBConnection()
     sessions = db.execute("SELECT PatientID, StartDate, EndDate FROM Sessions", fetchall=True)
     if not sessions:
-        return []
+        return True, [], 40001
     df = pd.DataFrame([dict(row) for row in sessions])
     df['StartDate'] = pd.to_datetime(df['StartDate'])
     df['EndDate'] = pd.to_datetime(df['EndDate'])
@@ -19,4 +18,4 @@ def generate_report():
         number_of_session=('PatientID', 'count'),
         total_duration=('duration', 'sum')
     ).reset_index()
-    return summary.to_dict(orient='records')
+    return True, summary.to_dict(orient='records'), 40000
