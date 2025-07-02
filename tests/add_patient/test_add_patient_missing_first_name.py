@@ -29,3 +29,5 @@ def test_add_patient_missing_first_name():
     statusCode = result.get("statusCode", 0)
     print(result)  # Optional: helps with debugging
     assert statusCode == 400
+
+    #SEC15A5Y2TUWP6
