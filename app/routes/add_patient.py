@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
-import re, logging
-from models.db_connection import DBConnection
+import logging
 import json
 from Utils.add_patient_utils import validate_and_add_patient
 # This route is intended to add a new patient to the database.

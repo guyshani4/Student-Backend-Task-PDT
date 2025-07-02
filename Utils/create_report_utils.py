@@ -1,5 +1,5 @@
 import pandas as pd
-from dataAccessLayer.report_dal import fetch_all_sessions
+from models.db_connection import DBConnection
 
 def generate_report():
     """
@@ -7,7 +7,8 @@ def generate_report():
     Returns a list of dicts with PatientID, number_of_session, and total_duration.
     Raises exceptions on error.
     """
-    sessions = fetch_all_sessions()
+    db = DBConnection()
+    sessions = db.execute("SELECT PatientID, StartDate, EndDate FROM Sessions", fetchall=True)
     if not sessions:
         return []
     df = pd.DataFrame([dict(row) for row in sessions])

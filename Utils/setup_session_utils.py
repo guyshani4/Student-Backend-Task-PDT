@@ -1,5 +1,4 @@
 import re
-from dataAccessLayer.session_dal import insert_session
 from models.db_connection import DBConnection
 
 def validate_and_add_session(data):
@@ -36,12 +35,19 @@ def validate_and_add_session(data):
     # Optional field
     summary = data.get('Summary', '')
 
-    # Insert into Sessions table using DAL
-    insert_session(
-        patient_id,
-        data['StartDate'],
-        data['EndDate'],
-        summary,
-        therapist_id
+    # Insert into Sessions table using DBConnection (moved from DAL)
+    db.execute(
+        """
+        INSERT INTO Sessions (PatientID, StartDate, EndDate, Summary, TherapistID)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            patient_id,
+            data['StartDate'],
+            data['EndDate'],
+            summary,
+            therapist_id
+        ),
+        commit=True
     )
     return True, f"Session added successfully: PatientID={patient_id}, TherapistID={therapist_id}, StartDate={data['StartDate']}, EndDate={data['EndDate']}"

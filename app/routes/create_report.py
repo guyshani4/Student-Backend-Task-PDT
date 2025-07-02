@@ -1,7 +1,5 @@
 from flask import Blueprint, jsonify
-import re, logging
-from models.db_connection import DBConnection
-import pandas as pd
+import logging
 from Utils.create_report_utils import generate_report
 
 # This route should return a summary table for all patients using the pandas library.

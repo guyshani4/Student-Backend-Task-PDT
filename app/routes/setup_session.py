@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request
-import re, logging
+import logging
 import json
-from models.db_connection import DBConnection
 from Utils.setup_session_utils import validate_and_add_session
 
 # This route is intended to add a new session to the database.

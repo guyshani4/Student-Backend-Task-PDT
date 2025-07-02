@@ -1,5 +1,5 @@
 import re
-from dataAccessLayer.user_dal import insert_user
+from models.db_connection import DBConnection
 
 def validate_and_add_user(data):
     """
@@ -41,15 +41,23 @@ def validate_and_add_user(data):
     # Optional field
     home_address = data.get('HomeAddress', '')
 
-    # Insert into database using DAL
-    insert_user(
-        data['UserName'],
-        data['CreatedDate'],
-        data['FirstName'],
-        data['LastName'],
-        data['PhoneNumber'],
-        home_address,
-        data['ID'],
-        data['Email']
+    # Insert into database using DBConnection (moved from DAL)
+    db = DBConnection()
+    db.execute(
+        """
+        INSERT INTO Users (UserName, CreatedDate, FirstName, LastName, PhoneNumber, HomeAddress, ID, Email)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            data['UserName'],
+            data['CreatedDate'],
+            data['FirstName'],
+            data['LastName'],
+            data['PhoneNumber'],
+            home_address,
+            data['ID'],
+            data['Email']
+        ),
+        commit=True
     )
     return True, f"User: {data['ID']} added successfully"

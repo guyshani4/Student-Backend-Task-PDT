@@ -1,5 +1,5 @@
 import re
-from dataAccessLayer.patient_dal import insert_patient
+from models.db_connection import DBConnection
 
 def validate_and_add_patient(data):
     """
@@ -43,15 +43,23 @@ def validate_and_add_patient(data):
     medical_history = data.get('MedicalHistory', '')
     home_address = data.get('HomeAddress', '')
 
-    # Insert into database using DAL
-    insert_patient(
-        data['FirstName'],
-        data['LastName'],
-        patient_id,
-        data['DateOfBirth'],
-        data['Gender'],
-        medical_history,
-        home_address,
-        data['InterfaceLanguage']
+    # Insert into database using DBConnection (moved from DAL)
+    db = DBConnection()
+    db.execute(
+        """
+        INSERT INTO Patients (FirstName, LastName, ID, DateOfBirth, Gender, MedicalHistory, HomeAddress, InterfaceLanguage)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            data['FirstName'],
+            data['LastName'],
+            patient_id,
+            data['DateOfBirth'],
+            data['Gender'],
+            medical_history,
+            home_address,
+            data['InterfaceLanguage']
+        ),
+        commit=True
     )
     return True, f"Patient: {patient_id} added successfully"

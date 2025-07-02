@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
-import re, logging
-from models.db_connection import DBConnection
+import logging
 import json
 from Utils.add_user_utils import validate_and_add_user
 # This route is intended to add a new user to the database.
