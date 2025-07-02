@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-import re
+import re, logging
 from models.db_connection import DBConnection
 import json
 # This route is intended to add a new user to the database.
@@ -19,6 +19,8 @@ import json
 
 
 add_user_bp = Blueprint('add_user', __name__)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 @add_user_bp.route('/api/add-user', methods=['POST'])
 def add_user():
@@ -38,6 +40,7 @@ def add_user():
         required_fields = ['UserName', 'CreatedDate', 'FirstName', 'LastName', 'PhoneNumber', 'ID', 'Email']
         for field in required_fields:
             if field not in data or not data[field]:
+                logger.error("Missing or empty required field in add_user: %s", field)
                 return jsonify({"message": f"Missing or empty required field: {field}"}), 400
 
         # Validate UserName, FirstName, LastName
@@ -85,8 +88,11 @@ def add_user():
             data['ID'],
             data['Email']
         ), commit=True)
-
+        logger.info("User: %s added successfully", data['ID'])
         return jsonify({"message": "User added successfully."}), 200
 
     except Exception as e:
+        # Try to log the user ID if available
+        user_id = data.get('ID', 'unknown') if 'data' in locals() and isinstance(data, dict) else 'unknown'
+        logger.error("Error in add_user %s: %s", user_id, str(e))
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500

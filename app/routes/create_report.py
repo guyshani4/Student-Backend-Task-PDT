@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-import re
+import re, logging
 from models.db_connection import DBConnection
 import pandas as pd
 
@@ -12,9 +12,12 @@ import pandas as pd
 
 create_report_bp = Blueprint('create_report', __name__)
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 @create_report_bp.route('/api/create-report', methods=['GET'])
 def create_report():
-    print("DEBUG: create_report route called")
+
     try:
         db = DBConnection()
         # Fetch all sessions from the database
@@ -41,4 +44,5 @@ def create_report():
         return jsonify(result), 200
 
     except Exception as e:
+        logger.error("Failed to create report: %s", str(e))
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500

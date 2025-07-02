@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-import re
+import re, logging
 from models.db_connection import DBConnection
 import json
 # This route is intended to add a new patient to the database.
@@ -18,6 +18,9 @@ import json
 
 
 add_patient_bp = Blueprint('add_patient', __name__)
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 @add_patient_bp.route('/api/add-patient', methods=['POST'])
 def add_patient():
@@ -40,6 +43,7 @@ def add_patient():
         required_fields = ['FirstName', 'LastName', 'ID', 'DateOfBirth', 'Gender', 'InterfaceLanguage']
         for field in required_fields:
             if field not in data or not data[field]:
+                logger.error("Missing or empty required field in add_patient: %s", field)
                 return jsonify({"message": f"Missing or empty required field: {field}"}), 400
 
         # Validate FirstName and LastName 
@@ -89,8 +93,11 @@ def add_patient():
             home_address,
             data['InterfaceLanguage']
         ), commit=True)
-        
+        logger.info("Patient: %s added successfully", patient_id)
         return jsonify({"message": "User added successfully."}), 200
 
     except Exception as e:
+        # Try to log the patient ID if available
+        patient_id = data.get('ID', 'unknown') if 'data' in locals() and isinstance(data, dict) else 'unknown'
+        logger.error("Error in add_patient %s: %s", patient_id, str(e))
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
