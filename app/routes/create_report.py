@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify
 import re, logging
 from models.db_connection import DBConnection
 import pandas as pd
+from Utils.create_report_utils import generate_report
 
 # This route should return a summary table for all patients using the pandas library.
 # It should query the database for all sessions and group them by PatientID.
@@ -17,32 +18,9 @@ logging.basicConfig(level=logging.INFO)
 
 @create_report_bp.route('/api/create-report', methods=['GET'])
 def create_report():
-
     try:
-        db = DBConnection()
-        # Fetch all sessions from the database
-        sessions = db.execute("SELECT PatientID, StartDate, EndDate FROM Sessions", fetchall=True)
-        if not sessions:
-            return jsonify([]), 200  # Return empty list if no sessions
-
-        # Convert to DataFrame
-        df = pd.DataFrame([dict(row) for row in sessions])
-
-        # Calculate session duration (assuming StartDate and EndDate are in 'YYYY-MM-DD' format)
-        df['StartDate'] = pd.to_datetime(df['StartDate'])
-        df['EndDate'] = pd.to_datetime(df['EndDate'])
-        df['duration'] = (df['EndDate'] - df['StartDate']).dt.days
-
-        # Group by PatientID
-        summary = df.groupby('PatientID').agg(
-            number_of_session=('PatientID', 'count'),
-            total_duration=('duration', 'sum')
-        ).reset_index()
-
-        # Convert to list of dicts for JSON response
-        result = summary.to_dict(orient='records')
+        result = generate_report()
         return jsonify(result), 200
-
     except Exception as e:
         logger.error("Failed to create report: %s", str(e))
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
